@@ -18,6 +18,15 @@ export interface ProductInterfaces {
   name: string;
   price: number;
   category: CategoryInterfaces;
+  images: {
+    id: string;
+    image_url: string;
+  }[];
+}
+export interface ProductImageInterfaces {
+  id: string;
+  product: ProductInterfaces;
+  image_url: string;
 }
 
 export interface ReviewInterfaces {

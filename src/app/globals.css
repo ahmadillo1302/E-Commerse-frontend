@@ -19,3 +19,33 @@ body {
   color: #000000;
   font-family: Arial, Helvetica, sans-serif;
 }
+@keyframes categoryBorder {
+  0% {
+    border-color: #ff0000; /* Qizil */
+  }
+  14% {
+    border-color: #ff8000; /* To'q sariq */
+  }
+  28% {
+    border-color: #ffff00; /* Sariq */
+  }
+  42% {
+    border-color: #80ff00; /* Yashil */
+  }
+  56% {
+    border-color: #00ff80; /* Moviy-yashil */
+  }
+  70% {
+    border-color: #0080ff; /* Ko'k */
+  }
+  84% {
+    border-color: #8000ff; /* Binafsha */
+  }
+  100% {
+    border-color: #ff0000; /* Qayta qizil */
+  }
+}
+
+.animate-border {
+  animation: categoryBorder 4s infinite linear;
+}

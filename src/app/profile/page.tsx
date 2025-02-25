@@ -1,109 +1,196 @@
 "use client";
 
-import { useState } from "react";
+import type React from "react";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { jwtDecode } from "jwt-decode";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useGetAllOrdersQuery, useGetUserQuery } from "@/lib/services/api";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import Link from "next/link";
+import { useAuthStore } from "@/store/authStore";
+import { useGetUserQuery, useUpdateUserMutation } from "@/lib/services/api";
 
 export default function ProfilePage() {
-  const { data: user, isLoading: userLoading } = useGetUserQuery();
-  const { data: orders, isLoading: ordersLoading } = useGetAllOrdersQuery();
-  const [activeTab, setActiveTab] = useState("orders");
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState("buyurtmalar");
+  const [editable, setEditable] = useState(false);
+  const { isLoggedIn, setIsLoggedIn } = useAuthStore();
+  const [userId, setUserId] = useState<string | null>(null);
 
-  if (userLoading || ordersLoading) {
-    return (
-      <p className="text-center text-gray-600">Ma'lumotlar yuklanmoqda...</p>
-    );
-  }
+  const [formData, setFormData] = useState({
+    last_name: "",
+    first_name: "",
+    email: "",
+    phone_number: "",
+  });
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const accessToken = localStorage.getItem("access_token");
+      if (accessToken) {
+        try {
+          const decodedToken: { id: string } = jwtDecode(accessToken);
+          setUserId(decodedToken.id);
+          setIsLoggedIn(true);
+        } catch (error) {
+          console.error("Tokenni dekod qilishda xatolik:", error);
+          setIsLoggedIn(false);
+          router.push("/login");
+        }
+      }
+    }
+  }, [router, setIsLoggedIn]);
+
+  const {
+    data: user,
+    isLoading,
+    error,
+  } = useGetUserQuery(userId, {
+    skip: !userId,
+  });
+
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        last_name: user.last_name || "",
+        first_name: user.first_name || "",
+        email: user.email || "",
+        phone_number: user.phone_number || "",
+      });
+    }
+  }, [user]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.id]: e.target.value });
+    setEditable(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("access_token");
+    router.push("/login");
+  };
+
+  const [updateUser] = useUpdateUserMutation();
+  const handleSave = async () => {
+    if (userId && user) {
+      const updateData: Record<string, string> = {};
+
+      Object.keys(formData).forEach((key) => {
+        if (
+          formData[key as keyof typeof formData] !==
+          user[key as keyof typeof user]
+        ) {
+          updateData[key] = formData[key as keyof typeof formData];
+        }
+      });
+
+      if (Object.keys(updateData).length === 0) {
+        setEditable(false);
+        return;
+      }
+      try {
+        await updateUser({ id: userId, ...updateData }).unwrap();
+        setEditable(false);
+      } catch (error) {
+        console.error("Ma'lumotlarni yangilashda xatolik:", error);
+      }
+    }
+  };
+
+  if (!userId) return null;
 
   return (
-    <div className="container mx-auto p-6">
-      {user ? (
-        <>
-          <h1 className="text-3xl font-semibold">
-            {user.first_name} {user.last_name}
-          </h1>
-          <p className="text-gray-600">{user.email}</p>
-          <p className="text-gray-600">Telefon: {user.phone_number}</p>
+    <div className="container mx-auto py-8">
+      <h1 className="text-2xl font-semibold mb-6">Shaxsiy Profil</h1>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="flex gap-4 bg-gray-100 p-2 rounded-lg mb-6">
+          <TabsTrigger value="buyurtmalar" className="w-full">
+            Buyurtmalar
+          </TabsTrigger>
+          <TabsTrigger value="profil" className="w-full">
+            Profil
+          </TabsTrigger>
+        </TabsList>
 
-          {/* Tabs */}
-          <div className="flex gap-4 mt-4">
-            <button
-              className={`px-4 py-2 rounded-md ${
-                activeTab === "orders" ? "bg-gray-300" : "bg-gray-100"
-              }`}
-              onClick={() => setActiveTab("orders")}
-            >
-              Buyurtmalarim
-            </button>
-            <button
-              className={`px-4 py-2 rounded-md ${
-                activeTab === "info" ? "bg-gray-300" : "bg-gray-100"
-              }`}
-              onClick={() => setActiveTab("info")}
-            >
-              Ma'lumotlarim
-            </button>
-          </div>
+        <TabsContent value="profil">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="space-y-6">
+                {isLoading ? (
+                  <p>Yuklanmoqda...</p>
+                ) : error ? (
+                  <p>Xatolik yuz berdi</p>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="last_name">Familiya</Label>
+                        <Input
+                          id="last_name"
+                          value={formData.last_name}
+                          onChange={handleInputChange}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="first_name">Ism</Label>
+                        <Input
+                          id="first_name"
+                          value={formData.first_name}
+                          onChange={handleInputChange}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Elektron pochta</Label>
+                        <Input id="email" value={formData.email} readOnly />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="phone_number">Telefon raqami</Label>
+                        <Input
+                          id="phone_number"
+                          value={formData.phone_number}
+                          onChange={handleInputChange}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center pt-4">
+                      <Button variant="destructive" onClick={handleLogout}>
+                        Tizimdan chiqish
+                      </Button>
+                      {editable && (
+                        <Button variant="outline" onClick={handleSave}>
+                          Ma'lumotlarni saqlash
+                        </Button>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-          {/* Buyurtmalar */}
-          {activeTab === "orders" && (
-            <div className="mt-6">
-              {orders?.length > 0 ? (
-                orders.map((order) => (
-                  <div
-                    key={order.id}
-                    className="border p-4 rounded-lg mt-4 bg-gray-100"
-                  >
-                    <p className="text-lg font-semibold">
-                      Buyurtma ID: {order.id}
-                    </p>
-                    <p>Status: {order.status}</p>
-                    <p>Umumiy narx: ${order.totalPrice}</p>
-                    <p>
-                      Sanasi: {new Date(order.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center mt-8">
-                  <h2 className="text-2xl font-semibold">Hech narsa yo‘q</h2>
-                  <p className="text-gray-600">
-                    Sizda faol buyurtma mavjud emas!
-                  </p>
-                  <Button className="mt-4 bg-purple-600 text-white px-6 py-2 rounded-md">
-                    Xaridlarni boshlash
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* User ma'lumotlari */}
-          {activeTab === "info" && (
-            <div className="mt-6">
-              <p>
-                <strong>Ism:</strong> {user.first_name}
-              </p>
-              <p>
-                <strong>Familiya:</strong> {user.last_name}
-              </p>
-              <p>
-                <strong>Email:</strong> {user.email}
-              </p>
-              <p>
-                <strong>Telefon:</strong> {user.phone_number}
-              </p>
-              <p>
-                <strong>Role:</strong> {user.role}
-              </p>
-            </div>
-          )}
-        </>
-      ) : (
-        <p className="text-center text-gray-600">
-          Foydalanuvchi ma'lumotlari topilmadi
-        </p>
-      )}
+        <TabsContent value="buyurtmalar">
+          <Card className="text-center py-16">
+            <h2 className="text-2xl font-semibold mb-2">
+              Buyurtmalar ro'yxati
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Sizda faol buyurtma mavjud emas.
+            </p>
+            <Link href="/">
+              <Button className="bg-purple-600 hover:bg-purple-700">
+                Xaridlarni boshlash
+              </Button>
+            </Link>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

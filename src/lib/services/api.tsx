@@ -229,7 +229,7 @@ export const api = createApi({
     }),
     getCartByUser: builder.query({
       query: (userId) => ({
-        url: `carts?user=${userId}`,
+        url: `carts/user/${userId}`,
         method: "GET",
       }),
     }),
@@ -371,32 +371,38 @@ export const api = createApi({
     }),
 
     // Product Images
-    getAllProductImages: builder.query({
-      query: () => "product_images",
-    }),
-    getProductImage: builder.query({
-      query: (id) => ({
-        url: `product_images/${id}`,
-        method: "GET",
-      }),
-    }),
     createProductImage: builder.mutation({
       query: (productImage) => ({
-        url: "product_images",
+        url: "product-images",
         method: "POST",
         body: productImage,
       }),
     }),
+    getAllProductImages: builder.query({
+      query: () => "product-images",
+    }),
+    getProductImage: builder.query({
+      query: (image_url) => ({
+        url: `${image_url}`,
+        method: "GET",
+      }),
+    }),
+    getProductImageByProductId: builder.query({
+      query: (productId) => ({
+        url: `product-images/${productId}`,
+        method: "GET",
+      }),
+    }),
     updateProductImage: builder.mutation({
       query: ({ id, ...productImage }) => ({
-        url: `product_images/${id}`,
+        url: `product-images/${id}`,
         method: "PATCH",
         body: productImage,
       }),
     }),
     deleteProductImage: builder.mutation({
       query: (id) => ({
-        url: `product_images/${id}`,
+        url: `product-images/${id}`,
         method: "DELETE",
       }),
     }),
@@ -434,54 +440,84 @@ export const api = createApi({
 });
 
 export const {
+  //Auth
   useLoginMutation,
   useRegisterMutation,
+  //User
   useGetAllUsersQuery,
   useGetUserQuery,
   useUpdateUserMutation,
   useDeleteUserMutation,
-  useGetAllProductsQuery,
+  //Product
   useCreateProductMutation,
+  useGetAllProductsQuery,
+  useGetProductQuery,
   useUpdateProductMutation,
   useDeleteProductMutation,
-  useGetAllOrdersQuery,
+  //Order
   useCreateOrderMutation,
+  useGetAllOrdersQuery,
+  useGetOrderQuery,
   useUpdateOrderMutation,
   useDeleteOrderMutation,
-  useGetAllCategoriesQuery,
+  //Category
   useCreateCategoryMutation,
+  useGetAllCategoriesQuery,
+  useGetCategoryQuery,
   useUpdateCategoryMutation,
   useDeleteCategoryMutation,
-  useGetAllPaymentsQuery,
+  //Payments
   useCreatePaymentMutation,
+  useGetAllPaymentsQuery,
+  useGetPaymentQuery,
   useUpdatePaymentMutation,
   useDeletePaymentMutation,
+  //Review
+  useCreateReviewMutation,
   useGetReviewQuery,
   useGetAllReviewsQuery,
-  useCreateReviewMutation,
   useUpdateReviewMutation,
   useDeleteReviewMutation,
+  //Cart
   useCreateCartMutation,
   useGetAllCartsQuery,
+  useGetCartQuery,
   useUpdateCartMutation,
   useDeleteCartMutation,
+  //Cart-Item
   useCreateCartItemMutation,
-  useGetCartQuery,
   useGetCartByUserQuery,
   useGetAllCartItemsQuery,
   useGetCartItemQuery,
   useUpdateCartItemMutation,
   useDeleteCartItemMutation,
-  useGetAllPromocodesQuery,
+  //Promocode
   useCreatePromocodeMutation,
+  useGetAllPromocodesQuery,
+  useGetPromocodeQuery,
   useUpdatePromocodeMutation,
   useDeletePromocodeMutation,
+  //Order-History
+  useCreateOrderHistoryMutation,
+  useGetAllOrderHistoriesQuery,
   useGetOrderHistoryQuery,
+  useDeleteOrderHistoryMutation,
+  //Order-Item
+  useCreateOrderItemMutation,
   useGetAllOrderItemsQuery,
-  useGetAllProductImagesQuery,
-  useGetAllAddressesQuery,
+  useGetOrderItemQuery,
+  useDeleteOrderItemMutation,
+  //Address
   useCreateAddressMutation,
+  useGetAllAddressesQuery,
   useGetAddressQuery,
   useUpdateAddressMutation,
   useDeleteAddressMutation,
+  //Product-Image
+  useCreateProductImageMutation,
+  useGetAllProductImagesQuery,
+  useGetProductImageQuery,
+  useGetProductImageByProductIdQuery,
+  useUpdateProductImageMutation,
+  useDeleteProductImageMutation,
 } = api;

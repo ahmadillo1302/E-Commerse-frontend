@@ -16,6 +16,9 @@ import { Logo } from "@/images";
 import { jwtDecode } from "jwt-decode";
 import { useGetUserQuery } from "@/lib/services/api";
 import { Button } from "@/components/ui/button";
+import type { UserInterfaces } from "@/lib/interfaces";
+import { useAuthStore } from "@/store/authStore";
+import { useRouter } from "next/navigation";
 
 interface NavbarProps {
   isLoggedIn: boolean;
@@ -25,39 +28,57 @@ export default function Navbar({ isLoggedIn }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [userId, setUserId] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { setIsLoggedIn } = useAuthStore();
+  const router = useRouter();
 
   useEffect(() => {
+    // Check authentication status only on client side
     if (typeof window !== "undefined") {
       const token = localStorage.getItem("access_token");
       if (token) {
         try {
           const decodedToken: { id: string } = jwtDecode(token);
           setUserId(decodedToken.id);
+          setIsAuthenticated(true);
+          setIsLoggedIn(true);
         } catch (error) {
           console.error("Tokenni dekodlashda xatolik:", error);
+          handleLogout();
         }
+      } else {
+        setIsAuthenticated(false);
+        setIsLoggedIn(false);
       }
     }
-  }, []);
+  }, [setIsLoggedIn]);
 
-  const { data: user } = useGetUserQuery(userId!, {
-    skip: !userId || !isLoggedIn,
+  const { data: user, error: userError } = useGetUserQuery(userId!, {
+    skip: !userId,
   });
 
   useEffect(() => {
-    if (user) {
-      setFirstName(user.first_name);
+    if (userError) {
+      handleLogout();
     }
-  }, [user]);
+    if (user) {
+      setFirstName((user as UserInterfaces).first_name);
+    }
+  }, [user, userError]);
 
   const handleLogout = () => {
-    localStorage.removeItem("access_token");
-    window.location.reload();
+    if (typeof window !== "undefined") {
+      localStorage.clear();
+    }
+    setIsLoggedIn(false);
+    setIsAuthenticated(false);
+    setFirstName("");
+    setUserId(null);
+    router.push("/login");
   };
 
   return (
     <nav className="bg-white shadow-md py-4 px-6 flex flex-col md:flex-row justify-between items-center relative">
-      {/* Logo va Mobile Menu Button */}
       <div className="w-full md:w-auto flex justify-between items-center">
         <Link href="/">
           <Image
@@ -65,6 +86,7 @@ export default function Navbar({ isLoggedIn }: NavbarProps) {
             alt="Logo"
             width={150}
             height={40}
+            style={{ height: "auto" }}
           />
         </Link>
         <Button
@@ -77,7 +99,6 @@ export default function Navbar({ isLoggedIn }: NavbarProps) {
         </Button>
       </div>
 
-      {/* Qidiruv Maydoni (Mobile uchun pastga tushadi) */}
       <div className="w-full md:w-auto mt-4 md:mt-0 md:flex items-center space-x-4 flex-grow mx-6 max-w-md">
         <div className="relative w-full">
           <input
@@ -89,7 +110,6 @@ export default function Navbar({ isLoggedIn }: NavbarProps) {
         </div>
       </div>
 
-      {/* Wishlist, Savat va Profil (Mobile uchun yashirilgan) */}
       <div className="hidden md:flex items-center space-x-4">
         <Link
           href="/wishlist"
@@ -105,14 +125,14 @@ export default function Navbar({ isLoggedIn }: NavbarProps) {
           <ShoppingCart size={24} />
           <span>Savat</span>
         </Link>
-        {isLoggedIn ? (
+        {isAuthenticated ? (
           <div className="flex items-center space-x-4">
             <Link
-              href="http://localhost:3001/profile"
+              href="/profile"
               className="flex items-center space-x-2 text-gray-700 hover:text-blue-500"
             >
               <User size={24} />
-              <span>{firstName}</span>
+              <span>{firstName || "Foydalanuvchi"}</span>
             </Link>
             <Button
               onClick={handleLogout}
@@ -133,7 +153,6 @@ export default function Navbar({ isLoggedIn }: NavbarProps) {
         )}
       </div>
 
-      {/* Mobile Menu (Faqlat kichik ekranlarda ko'rinadi) */}
       {isOpen && (
         <div className="w-full md:hidden bg-white shadow-md flex flex-col space-y-4 p-4">
           <Link
@@ -152,7 +171,7 @@ export default function Navbar({ isLoggedIn }: NavbarProps) {
             <ShoppingCart size={24} />
             <span>Savat</span>
           </Link>
-          {isLoggedIn ? (
+          {isAuthenticated ? (
             <>
               <Link
                 href="/profile"
@@ -160,7 +179,7 @@ export default function Navbar({ isLoggedIn }: NavbarProps) {
                 onClick={() => setIsOpen(false)}
               >
                 <User size={24} />
-                <span>{firstName}</span>
+                <span>{firstName || "Foydalanuvchi"}</span>
               </Link>
               <Button
                 onClick={handleLogout}
